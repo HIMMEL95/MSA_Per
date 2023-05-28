@@ -2,18 +2,16 @@ package com.util.msa_frontend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import com.util.msa_frontend.security.jwt.JwtAuthenticationFilter;
+import com.util.msa_frontend.security.JwtAccessDeniedHandler;
+import com.util.msa_frontend.security.JwtAuthenticationEntryPoint;
 import com.util.msa_frontend.security.jwt.JwtTokenProvider;
 
 import lombok.RequiredArgsConstructor;
@@ -21,40 +19,47 @@ import lombok.RequiredArgsConstructor;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
-
+public class SecurityConfig {
     private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        return new BCryptPasswordEncoder();
     }
 
-    // authenticationManager를 Bean 등록하기
     @Bean
-    @Override
-    public AuthenticationManager authenticationManagerBean() throws Exception {
-        return super.authenticationManagerBean();
+    public WebSecurityCustomizer webSecurityCustomizer() {
+        return (web) -> web.ignoring()
+                .antMatchers("");
     }
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .httpBasic().disable() // rest api 만을 고려하여 기본 설정은 해제
-                // h2 콘솔 사용
-                .csrf().disable() // csrf 보안 토큰 disable 처리
-                // 세션 사용 안함
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                // URL 관리
-                .authorizeRequests() // 요청에 대한 사용권한 체크
-                .antMatchers("/login").permitAll()
-                .anyRequest().authenticated()
-                .and()
+                .csrf().disable();
 
-                // JwtAuthenticationFilter를 먼저 적용
-                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider),
-                        UsernamePasswordAuthenticationFilter.class);
+        http
+                .authorizeRequests()
+                .antMatchers("/",
+                        "/api/login*")
+                .permitAll()
+                .anyRequest().authenticated();
+
+        http
+                .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+
+        http
+                .exceptionHandling()
+                .accessDeniedHandler(jwtAccessDeniedHandler)
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint);
+
+        http
+                .apply(new JwtSecurityConfig(jwtTokenProvider));
+
+        return http.build();
     }
 
 }

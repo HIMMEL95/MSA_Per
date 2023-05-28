@@ -1,12 +1,12 @@
-package com.util.msa_frontend;
+package com.util.msa_gateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class MsaFrontendApplicationTests {
+class MsaGatewayApplicationTests {
 
-	// @Test
+	@Test
 	void contextLoads() {
 	}
 

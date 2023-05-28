@@ -1,0 +1,14 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Spring Boot-MsaFrontendApplication<msa_frontend>",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "mainClass": "com.util.msa_frontend.MsaFrontendApplication",
+      "projectName": "msa_frontend",
+      "args": "",
+      "envFile": "${workspaceFolder}/.env"
+    }
+  ]
+}

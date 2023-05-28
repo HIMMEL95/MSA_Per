@@ -7,6 +7,9 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -23,9 +26,13 @@ import lombok.RequiredArgsConstructor;
 @Component
 public class JwtTokenProvider {
 
-    private String secretKey = "MSA";
-    private long tokenValidTime = 60 * 60 * 1000L; // 60분
+    private final Logger log = LoggerFactory.getLogger(this.getClass());
+
     private final UserDetailsService userDetailsService;
+
+    @Value("${jwt.secret}")
+    String secretKey;
+    private long tokenValidTime = 60 * 60 * 1000L; // 60분
 
     @PostConstruct
     protected void init() {
