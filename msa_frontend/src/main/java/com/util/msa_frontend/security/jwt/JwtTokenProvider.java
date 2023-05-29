@@ -1,14 +1,13 @@
 package com.util.msa_frontend.security.jwt;
 
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
-
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -16,22 +15,25 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.RequiredArgsConstructor;
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+import java.util.Base64;
+import java.util.Date;
+import java.util.List;
 
-@RequiredArgsConstructor
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
+    @Autowired
     private final UserDetailsService userDetailsService;
 
     @Value("${jwt.secret}")
     String secretKey;
+    @Value("${jwt.header}")
+    String header;
     private long tokenValidTime = 60 * 60 * 1000L; // 60분
 
     @PostConstruct
@@ -43,6 +45,7 @@ public class JwtTokenProvider {
     public String createToken(String userPk, List<String> roles) { // userPk = email
         Claims claims = Jwts.claims().setSubject(userPk); // JWT Payload에 저장되는 정보단위
         claims.put("roles", roles); // 정보는 key / value 쌍으로 저장
+
         Date now = new Date();
         return Jwts.builder()
                 .setClaims(claims) // 정보 저장
@@ -75,6 +78,10 @@ public class JwtTokenProvider {
 
     // Request의 Header에서 token 값 가져오기
     public String resolveToken(HttpServletRequest request) {
-        return request.getHeader("X-AUTH-TOKEN");
+        String bearerToken = request.getHeader(header);
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
     }
 }
