@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+<comment>common_code</comment>
+
+<!-- token -->
+<entry key="spring.jwt.secret">sellersSecurity</entry>
+<entry key="spring.jwt.access.header">Access-Token</entry>
+<entry key="spring.jwt.refresh.header">Refresh-Token</entry>
+
+<!-- firebase cloud messaging -->
+<entry key="fcm.webApiKey">AIzaSyCIysjqBUSxWoy1bqYrQp2-kzRiEwU5nO0</entry>
+<!-- <entry key="fcm.serverKey">AAAAtToswI8:APA91bG923d4e9ro_sugBVltfLKx46vgFAHTcLe431GODeNSyJuelX6TM0vJxVJVzI0dIi1hQ0EOjz151AycaK3KmGXJGdN3F0OkaCAbWjiylUWgLImHGryyIvJBjjELrYVd29uH0lmb1rhbbYOoGrIg4SHI6BkVlg</entry> -->
+<entry key="fcm.serverKey">AAAAyVDh3nI:APA91bF7mC8KDdwzT9ovZhIJwoxZl8c7OETGJavQXw3U2z38-HvbmcbsncnA7UpeTcYorn8gvOPy-cSj4vCrtfYAocTS6xPYaUh9Wxzl5ZDIO1JBUW8BGtXUy7u9Jy-1vXcJZd4nr4Q9</entry><!--최영완 -->
+
+<!-- google calendar API -->
+<entry key="path.googleAuth">googleAuth/</entry>
+
+</properties>

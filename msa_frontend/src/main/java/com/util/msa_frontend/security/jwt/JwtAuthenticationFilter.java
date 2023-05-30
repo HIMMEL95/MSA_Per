@@ -1,45 +1,119 @@
 package com.util.msa_frontend.security.jwt;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.StringUtils;
-import org.springframework.web.filter.GenericFilterBean;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
+import javax.annotation.Resource;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import java.io.IOException;
+import javax.servlet.http.HttpServletResponse;
 
-@RequiredArgsConstructor
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import com.util.msa_frontend.util.CookieUtils;
+
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
-public class JwtAuthenticationFilter extends GenericFilterBean {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    @Resource(name = "JwtTokenProvider")
+    private JwtTokenProvider jwtTokenProvider;
+
+    private static final List<String> EXCLUDE_URL = Collections.unmodifiableList(
+            Arrays.asList("//",
+                    "/src/"));
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-        log.info("Start {}'s doFilter.....", this.getClass());
-        HttpServletRequest req = (HttpServletRequest) request;
-        // 헤더에서 토큰 받아오기
-        String token = jwtTokenProvider.resolveToken((HttpServletRequest) request);
-        String requestURI = req.getRequestURI();
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        return EXCLUDE_URL.stream().anyMatch(path::startsWith);
+    }
 
-        // 토큰이 유효하다면
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
+
+        log.info("{} : doFilter Start .... ", this.getClass());
+
+        HttpServletRequest req = (HttpServletRequest) request;
+        HttpServletResponse res = (HttpServletResponse) response;
+
+        String token = jwtTokenProvider.resolveToken(req, 1);
+        String refresh = "";
+
+        log.info(req.getRequestURI());
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            // 토큰으로부터 유저 정보를 받아
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            // securityContext에 객체 저장
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("Security Context에 '{}' 인증 정보를 저장했습니다. url : {}", authentication.getName(), requestURI);
+            log.info("AccessToken 정상");
+            setAuthentication(token, req);
         } else {
-            log.info("유효한 JWT 토큰이 없습니다. url : {}", requestURI);
+            log.info("AccessToken 만료");
+            refresh = CookieUtils.getCookie("refreshToken", req);
+
+            if (StringUtils.hasText(refresh) && jwtTokenProvider.validateToken(refresh)) {
+                log.info("accessToken 재발급");
+                try {
+                    Map<String, Object> newToken = jwtTokenProvider.regenToken(refresh);
+                    token = (String) newToken.get("accessToken");
+                    refresh = (String) newToken.get("refreshToken");
+
+                    setAuthentication(token, req);
+                    CookieUtils.setCookie("refreshToken", refresh, res);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            // else if ("/calendar/viewCalendar.do".equals(req.getRequestURI())) {
+            // log.info("viewCalendar accessToken 재발급");
+            // token = req.getParameter("state");
+            // if (StringUtils.hasText(token)) {
+            // token = token.split(" ")[1];
+            // try {
+            // Map<String, Object> newToken = jwtTokenProvider.regenToken(token);
+            // token = (String) newToken.get("accessToken");
+            // refresh = (String) newToken.get("refreshToken");
+            // setAuthentication(token, req);
+            // CookieUtils.setCookie("refreshToken", refresh, res);
+            // } catch (Exception e) {
+            // e.printStackTrace();
+            // }
+            // }
+            // }
         }
-        // 다음 Filter 실행
-        chain.doFilter(request, response);
+        filterChain.doFilter(request, response);
+    }
+
+    private void setAuthentication(String token, HttpServletRequest req) {
+        String userPK = jwtTokenProvider.getUserPk(token);
+
+        List<String> authList = jwtTokenProvider.getAuth(token);
+        List<GrantedAuthority> roles = new ArrayList<GrantedAuthority>();
+
+        for (String auth : authList) {
+            roles.add(new SimpleGrantedAuthority(auth));
+        }
+
+        Map<String, Object> userInfo = jwtTokenProvider.getUserInfo(token);
+        log.info("====================== userInfo ======================");
+        log.info(userInfo.toString());
+        userInfo.put("accessToken", token);
+
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userPK, "", roles);
+        authentication.setDetails(userInfo);
+
+        req.setAttribute("auth", roles.toString());
+        req.setAttribute("userInfo", userInfo);
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

@@ -1,39 +1,42 @@
 package com.util.msa_frontend.security.jwt;
 
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.util.msa_frontend.auth.AuthService;
+
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
-
-@Component
-@RequiredArgsConstructor
+@Component("JwtTokenProvider")
 public class JwtTokenProvider {
 
     private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-    @Autowired
-    private final UserDetailsService userDetailsService;
+    @Resource(name = "authService")
+    private AuthService authService;
 
     @Value("${jwt.secret}")
     String secretKey;
-    @Value("${jwt.header}")
-    String header;
+    @Value("${jwt.access.header}")
+    String accessTokenHeader;
+    @Value("${jwt.refresh.header}")
+    String refreshTokenHeader;
     private long tokenValidTime = 60 * 60 * 1000L; // 60분
 
     @PostConstruct
@@ -42,9 +45,19 @@ public class JwtTokenProvider {
     }
 
     // generate Token
-    public String createToken(String userPk, List<String> roles) { // userPk = email
+    public String createToken(String userPk, List<String> roles, Map<String, Object> userInfo, int type) { // userPk =
+                                                                                                           // email
+
+        Map<String, Object> authMap = new HashMap<>();
+        authMap.put("auth", roles.toString());
+
         Claims claims = Jwts.claims().setSubject(userPk); // JWT Payload에 저장되는 정보단위
-        claims.put("roles", roles); // 정보는 key / value 쌍으로 저장
+        claims.put("authMap", authMap); // 정보는 key / value 쌍으로 저장
+        claims.put("userInfo", userInfo);
+
+        if (type != 1) {
+            tokenValidTime *= (24 * 14);
+        }
 
         Date now = new Date();
         return Jwts.builder()
@@ -55,10 +68,13 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // 인증 정보 조회
-    public Authentication getAuthentication(String token) {
-        UserDetails details = userDetailsService.loadUserByUsername(this.getUserPk(token));
-        return new UsernamePasswordAuthenticationToken(details, "", details.getAuthorities());
+    // Request의 Header에서 token 값 가져오기
+    public String resolveToken(HttpServletRequest request, int type) {
+        if (type == 1) {
+            return request.getHeader(accessTokenHeader);
+        } else {
+            return request.getHeader(refreshTokenHeader);
+        }
     }
 
     // 토큰에서 회원 정보 추출
@@ -66,22 +82,30 @@ public class JwtTokenProvider {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
     }
 
+    public List<String> getAuth(String token) {
+        return (List<String>) Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().get("auth");
+    }
+
+    public Map<String, Object> getUserInfo(String token) {
+        return (Map<String, Object>) Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody()
+                .get("userInfo");
+    }
+
     // 토큰 유효성, 만료일자 확인
     public boolean validateToken(String jwtToken) {
         try {
             Jws<Claims> claims = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(jwtToken);
             return !claims.getBody().getExpiration().before(new Date());
+        } catch (ExpiredJwtException e) {
+            log.info("expired Token : ", e);
+            return false;
         } catch (Exception e) {
+            log.info("invalid Token", e);
             return false;
         }
     }
 
-    // Request의 Header에서 token 값 가져오기
-    public String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader(header);
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
-        }
-        return null;
+    public Map<String, Object> regenToken(String refreshToken) throws Exception {
+        return authService.regenAccessToken(refreshToken);
     }
 }
