@@ -1,0 +1,80 @@
+.container {
+  color: #0000d1;
+  display: grid;
+  position: relative;
+  z-index: 3;
+  align-items: center;
+  align-content: center;
+  grid-template-columns: 150px 650px 0.5fr;
+  grid-template-rows: 85px 65px;
+  grid-template-areas:
+    "title search utility"
+    "navigation navigation navigation";
+}
+
+.title {
+  grid-area: title;
+  margin: 0 auto;
+}
+
+.navbar-brand {
+  font-style: italic;
+  color: #0000d1;
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 10px;
+}
+
+.search-bar {
+  width: 650px;
+  height: 30px;
+  border-radius: 5px;
+  border: solid 1px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: left;
+  align-items: center;
+  z-index: 1;
+  opacity: 1;
+  grid-area: search;
+}
+
+.fa-search {
+  font-size: 15px;
+  margin-left: 10px;
+}
+
+.search-bar-input {
+  width: 100%;
+  border: none;
+  background-color: #f8f9fa;
+  text-align: left;
+  margin-left: 10px;
+  overflow: auto;
+  z-index: -1;
+  font-size: 15px;
+}
+
+.search-bar-input:focus {
+  outline: none;
+  width: 350px;
+  text-align: left;
+}
+
+.utility {
+  grid-area: utility;
+  margin: 0 auto;
+}
+
+.nav-item {
+  margin: 0 5px;
+}
+
+.utility .navbar-nav hr {
+  width: 1px;
+  height: 10px;
+  border: 0.5px solid black;
+}
+
+.navigation {
+  grid-area: navigation;
+}
