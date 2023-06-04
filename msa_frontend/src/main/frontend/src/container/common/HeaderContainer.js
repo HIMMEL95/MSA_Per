@@ -1,9 +1,9 @@
-import { faSearch } from "@fortawesome/free-solid-svg-icons";
+import { faBars, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import "bootstrap/dist/css/bootstrap.css";
 import Navbar from "react-bootstrap/Navbar";
 import Logo from "../../Image/honeycomb.png";
-import "../../css/HeaderContainer.css";
+import "../../css/common/HeaderContainer.css";
 
 const HeaderContainer = () => {
   return (
@@ -11,7 +11,6 @@ const HeaderContainer = () => {
       <nav className="navbar navbar-expand-lg">
         <div className="header-container">
           <div className="title">
-            {/* <FontAwesomeIcon icon={faHubspot} size="lg" /> */}
             <img className="logo" src={Logo} alt="logo" />
             <Navbar.Brand href="#home">Jobhub</Navbar.Brand>
           </div>
@@ -38,16 +37,11 @@ const HeaderContainer = () => {
             </ul>
           </div>
           <div className="navigation">
-            <div className="navbar-brand">Navbar</div>
-            <div className="collapse navbar-collapse" id="navbarNavAltMarkup">
-              <div className="navbar-nav">
-                <div className="nav-link active" aria-current="page">
-                  Home
-                </div>
-                <div className="nav-link">Features</div>
-                <div className="nav-link">Pricing</div>
-                <div className="nav-link disabled">Disabled</div>
-              </div>
+            <FontAwesomeIcon icon={faBars} size="lg" />
+            <div className="navTitle">
+              <div>채용정보</div>
+              <div>신입.인턴</div>
+              <div>채용정보</div>
             </div>
           </div>
         </div>
