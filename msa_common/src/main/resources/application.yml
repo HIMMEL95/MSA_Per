@@ -1,5 +1,0 @@
-# # property value
-# config_properties: properties-test.xml
-
-# local 개발
-api.gateway.url: http://localhost:8000
