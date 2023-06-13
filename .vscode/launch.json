@@ -2,6 +2,13 @@
   "configurations": [
     {
       "type": "java",
+      "name": "MsaCommonApplication",
+      "request": "launch",
+      "mainClass": "com.util.msa_common.MsaCommonApplication",
+      "projectName": "msa_common"
+    },
+    {
+      "type": "java",
       "name": "Spring Boot-MsaFrontendApplication<msa_frontend>",
       "request": "launch",
       "cwd": "${workspaceFolder}",
